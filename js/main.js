@@ -11,8 +11,7 @@ Vue.component('card', {
         return {
             isEditing: false,
             editTitle: '',
-            editDescription: '',
-            editPriority: 3,
+            editDescription: ''
         };
     },
     computed:{
@@ -25,15 +24,12 @@ Vue.component('card', {
             if (this.isLocked) return;
             this.editTitle = this.card.title;
             this.editDescription = this.card.description;
-            this.editPriority = this.card.priority || 3;
             this.isEditing = true;
         },
         saveEdit() {
             if (this.editTitle.trim() && this.editDescription.trim()) {
                 this.card.title = this.editTitle;
                 this.card.description = this.editDescription;
-                this.card.priority = parseInt(this.editPriority) || 3;
-                this.card.priority = Math.max(1, Math.min(5, this.card.priority));
                 this.card.updatedAt = new Date().toLocaleString();
                 this.$emit('card-updated');
             }
@@ -48,14 +44,6 @@ Vue.component('card', {
             <div v-if="isEditing">
                 <input type="text" v-model="editTitle" class="edit-input" />
                 <textarea v-model="editDescription" rows="3" class="edit-textarea"></textarea>
-                <label>Приоритет (1–5):</label>
-                <select v-model="editPriority" class="priority-select">
-                    <option value="1">1 — срочно</option>
-                    <option value="2">2</option>
-                    <option value="3">3 — нормально</option>
-                    <option value="4">4</option>
-                    <option value="5">5 — когда будет время</option>
-                </select>
                 <div class="edit-buttons">
                     <button @click="saveEdit">Сохранить</button>
                     <button @click="cancelEdit">Отмена</button>
@@ -66,9 +54,7 @@ Vue.component('card', {
                 <h3>{{ card.title }}</h3>
                 <p>{{ card.description }}</p>
             </div>
-            <p><strong>Приоритет:</strong> 
-                <span :class="'priority-' + card.priority">{{ card.priority }}</span>
-            </p>
+
             <p><strong>Дэдлайн:</strong> {{ card.deadline }}</p>
             <date-picker 
                 v-model="card.deadline" 
@@ -117,8 +103,6 @@ Vue.component('board', {
             const title = prompt("Введите заголовок задачи:");
             const description = prompt("Введите описание задачи:");
             const deadlineInput = prompt("Введите дату дедлайна:", new Date().toISOString().split('T')[0]);
-            const priorityInput = prompt("Приоритет (1 — самый высокий, 5 — самый низкий):", "3");
-            const priority = parseInt(priorityInput) || 3;
 
             const timestamp = new Date().toLocaleString();
 
@@ -130,11 +114,9 @@ Vue.component('board', {
                     createdAt: timestamp,
                     updatedAt: timestamp,
                     completed: false,
-                    overdue: false,
-                    priority: Math.max(1, Math.min(5, priority)),
+                    overdue: false
                 };
                 this.columns[columnIndex].cards.push(newCard);
-                this.sortCardsByPriority(columnIndex);
                 this.saveData();
             }
         },
@@ -157,10 +139,7 @@ Vue.component('board', {
             this.columns[targetColumnIndex].cards.push(card);
             this.columns[sourceColumnIndex].cards.splice(cardIndex, 1);
             this.checkOverdue(card);
-            this.sortCardsByPriority(sourceColumnIndex);
-            this.sortCardsByPriority(targetColumnIndex);
             this.saveData();
-
         },
         checkOverdue(card) {
             const today = new Date();
@@ -180,14 +159,8 @@ Vue.component('board', {
             }
         },
         onCardUpdated() {
-            this.columns.forEach((_, idx) => this.sortCardsByPriority(idx));
             this.saveData();
-        },
-        sortCardsByPriority(columnIndex) {
-            this.columns[columnIndex].cards.sort((a, b) => {
-                return a.priority - b.priority
-            })
-        },
+        }
     },
     template: `
         <div class="board">
