@@ -14,8 +14,14 @@ Vue.component('card', {
             editDescription: ''
         };
     },
+    computed:{
+        isLocked() {
+            return this.columnIndex === 3;
+        }
+    },
     methods: {
         startEdit() {
+            if (this.isLocked) return;
             this.editTitle = this.card.title;
             this.editDescription = this.card.description;
             this.isEditing = true;
@@ -34,20 +40,10 @@ Vue.component('card', {
         }
     },
     template: `
-        <div class="card" :class="{ completed: card.completed, overdue: card.overdue }">
+ <div class="card" :class="{ completed: card.completed, overdue: card.overdue, locked: isLocked }">
             <div v-if="isEditing">
-                <input 
-                    type="text" 
-                    v-model="editTitle" 
-                    placeholder="Заголовок" 
-                    class="edit-input"
-                />
-                <textarea 
-                    v-model="editDescription" 
-                    placeholder="Описание" 
-                    rows="3"
-                    class="edit-textarea"
-                ></textarea>
+                <input type="text" v-model="editTitle" class="edit-input" />
+                <textarea v-model="editDescription" rows="3" class="edit-textarea"></textarea>
                 <div class="edit-buttons">
                     <button @click="saveEdit">Сохранить</button>
                     <button @click="cancelEdit">Отмена</button>
@@ -60,20 +56,25 @@ Vue.component('card', {
             </div>
 
             <p><strong>Дэдлайн:</strong> {{ card.deadline }}</p>
-            <date-picker v-model="card.deadline" @input="$emit('card-updated')"></date-picker>
+            <date-picker 
+                v-model="card.deadline" 
+                @input="$emit('card-updated')" 
+                :disabled="isLocked"
+            ></date-picker>
 
             <p><strong>Создано:</strong> {{ card.createdAt }}</p>
             <p><strong>Обновлено:</strong> {{ card.updatedAt }}</p>
 
             <div class="card-buttons" v-if="!isEditing">
-                <button @click="startEdit">Редактировать</button>
+                <button v-if="!isLocked" @click="startEdit">Редактировать</button>
+                
                 <button v-if="columnIndex < 3" @click="$emit('move-card', columnIndex, columnIndex + 1, cardIndex)">
-                    → Следующая
+                    Следующая
                 </button>
                 <button v-if="columnIndex === 2" @click="$emit('move-card', columnIndex, columnIndex - 1, cardIndex)">
-                    ← Назад
+                    Назад
                 </button>
-                <button v-if="columnIndex === 0 || columnIndex === 3" @click="$emit('remove-card', columnIndex, cardIndex)">
+                <button v-if="columnIndex === 0" @click="$emit('remove-card', columnIndex, cardIndex)">
                     Удалить
                 </button>
             </div>
@@ -101,14 +102,15 @@ Vue.component('board', {
         addCard(columnIndex) {
             const title = prompt("Введите заголовок задачи:");
             const description = prompt("Введите описание задачи:");
-            const deadline = new Date().toISOString().split('T')[0];
+            const deadlineInput = prompt("Введите дату дедлайна (ГГГГ-ММ-ДД):", new Date().toISOString().split('T')[0]);
+
             const timestamp = new Date().toLocaleString();
 
-            if (title && description) {
+            if (title && description && deadlineInput) {
                 const newCard = {
                     title,
                     description,
-                    deadline,
+                    deadline: deadlineInput,
                     createdAt: timestamp,
                     updatedAt: timestamp,
                     completed: false,
