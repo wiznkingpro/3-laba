@@ -32,3 +32,34 @@ body {
     padding: 10px;
     transition: border 0.3s ease, transform 0.3s ease;
 }
+
+
+button:active {
+    transform: translateY(0);
+}
+
+.card .edit-input {
+    width: 100%;
+    padding: 6px;
+    margin-bottom: 8px;
+    font-size: 1.1em;
+    font-weight: bold;
+}
+
+.card .edit-textarea {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    resize: vertical;
+    min-height: 70px;
+}
+
+.card .edit-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.card .edit-buttons button {
+    flex: 1;
+    padding: 6px;
+}
