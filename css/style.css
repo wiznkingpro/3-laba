@@ -1,8 +1,8 @@
 body {
-    font-family: Arial, sans-serif;
+    font-family: monospace;
     margin: 0;
     padding: 20px;
-    background-color: #f4f4f4;
+    background-color: white;
 }
 
 .board {
