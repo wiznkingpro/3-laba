@@ -7,18 +7,77 @@ Vue.component('date-picker', {
 
 Vue.component('card', {
     props: ['card', 'columnIndex', 'cardIndex'],
+    data() {
+        return {
+            isEditing: false,
+            editTitle: '',
+            editDescription: ''
+        };
+    },
+    methods: {
+        startEdit() {
+            this.editTitle = this.card.title;
+            this.editDescription = this.card.description;
+            this.isEditing = true;
+        },
+        saveEdit() {
+            if (this.editTitle.trim() && this.editDescription.trim()) {
+                this.card.title = this.editTitle;
+                this.card.description = this.editDescription;
+                this.card.updatedAt = new Date().toLocaleString();
+                this.$emit('card-updated');
+            }
+            this.isEditing = false;
+        },
+        cancelEdit() {
+            this.isEditing = false;
+        }
+    },
     template: `
         <div class="card" :class="{ completed: card.completed, overdue: card.overdue }">
-            <h3>{{ card.title }}</h3>
-            <p>{{ card.description }}</p>
+            <div v-if="isEditing">
+                <input 
+                    type="text" 
+                    v-model="editTitle" 
+                    placeholder="Заголовок" 
+                    class="edit-input"
+                />
+                <textarea 
+                    v-model="editDescription" 
+                    placeholder="Описание" 
+                    rows="3"
+                    class="edit-textarea"
+                ></textarea>
+                <div class="edit-buttons">
+                    <button @click="saveEdit">Сохранить</button>
+                    <button @click="cancelEdit">Отмена</button>
+                </div>
+            </div>
+
+            <div v-else>
+                <h3>{{ card.title }}</h3>
+                <p>{{ card.description }}</p>
+            </div>
+
             <p><strong>Дэдлайн:</strong> {{ card.deadline }}</p>
+            <date-picker v-model="card.deadline" @input="$emit('card-updated')"></date-picker>
+
             <p><strong>Создано:</strong> {{ card.createdAt }}</p>
             <p><strong>Обновлено:</strong> {{ card.updatedAt }}</p>
-            <date-picker v-model="card.deadline"></date-picker>
-            <button @click="$emit('edit-card', columnIndex, cardIndex)">Редактировать</button>
-            <button v-if="columnIndex < 3" @click="$emit('move-card', columnIndex, columnIndex + 1, cardIndex)">Переместить в следующую колонку</button>
-            <button v-if="columnIndex === 2" @click="$emit('move-card', columnIndex, columnIndex - 1, cardIndex)">Вернуть в предыдущую колонку</button>
-            <button v-if="columnIndex === 0 || columnIndex === 3" @click="$emit('remove-card', columnIndex, cardIndex)">Удалить</button>
+
+            <div class="card-buttons" v-if="!isEditing">
+                <button @click="startEdit">Редактировать</button>
+                <button v-if="columnIndex < 3" @click="$emit('move-card', columnIndex, columnIndex + 1, cardIndex)">
+                    → Следующая
+                </button>
+                <button v-if="columnIndex === 2" @click="$emit('move-card', columnIndex, columnIndex - 1, cardIndex)">
+                    ← Назад
+                </button>
+                <button v-if="columnIndex === 0 || columnIndex === 3" @click="$emit('remove-card', columnIndex, cardIndex)">
+                    Удалить
+                </button>
+            </div>
+
             <p v-if="card.returnReason"><strong>Причина возврата:</strong> {{ card.returnReason }}</p>
         </div>
     `
@@ -42,7 +101,7 @@ Vue.component('board', {
         addCard(columnIndex) {
             const title = prompt("Введите заголовок задачи:");
             const description = prompt("Введите описание задачи:");
-            const deadline = new Date().toISOString().split('T')[0]; // Устанавливаем текущую дату по умолчанию
+            const deadline = new Date().toISOString().split('T')[0];
             const timestamp = new Date().toLocaleString();
 
             if (title && description) {
@@ -59,19 +118,6 @@ Vue.component('board', {
                 this.saveData();
             }
         },
-        editCard(columnIndex, cardIndex) {
-            const card = this.columns[columnIndex].cards[cardIndex];
-            const title = prompt("Введите заголовок задачи:", card.title);
-            const description = prompt("Введите описание задачи:", card.description);
-            const timestamp = new Date().toLocaleString();
-
-            if (title && description) {
-                card.title = title;
-                card.description = description;
-                card.updatedAt = timestamp;
-                this.saveData();
-            }
-        },
         removeCard(columnIndex, cardIndex) {
             if (confirm("Вы уверены, что хотите удалить эту карточку?")) {
                 this.columns[columnIndex].cards.splice(cardIndex, 1);
@@ -84,7 +130,7 @@ Vue.component('board', {
             if (targetColumnIndex === 1 && sourceColumnIndex === 2) {
                 const reason = prompt("Введите причину возврата:");
                 if (reason) {
-                    card.returnReason = reason; // Сохраняем причину возврата
+                    card.returnReason = reason;
                 }
             }
 
@@ -96,7 +142,7 @@ Vue.component('board', {
         checkOverdue(card) {
             const today = new Date();
             const deadline = new Date(card.deadline);
-            card.overdue = deadline < today;
+            card.overdue = deadline < today && !card.completed;
         },
         saveData() {
             localStorage.setItem('kanbanData', JSON.stringify(this.columns));
@@ -106,11 +152,12 @@ Vue.component('board', {
             if (data) {
                 this.columns = JSON.parse(data);
                 this.columns.forEach(column => {
-                    column.cards.forEach(card => {
-                        this.checkOverdue(card);
-                    });
+                    column.cards.forEach(card => this.checkOverdue(card));
                 });
             }
+        },
+        onCardUpdated() {
+            this.saveData();
         }
     },
     template: `
@@ -123,10 +170,10 @@ Vue.component('board', {
                         :card="card" 
                         :columnIndex="index" 
                         :cardIndex="cardIndex" 
-                        @edit-card="editCard" 
                         @move-card="moveCard" 
-                        @remove-card="removeCard">
-                    </card>
+                        @remove-card="removeCard"
+                        @card-updated="onCardUpdated"
+                    ></card>
                 </div>
             </div>
         </div>
